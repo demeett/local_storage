@@ -1,11 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:local_storage/local_manager/hive_base_class.dart';
-import 'package:local_storage/locator.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'bloc/theme_bloc.dart';
+import 'bloc/theme_bloc_state.dart';
+import 'constant/theme_constant.dart';
+import 'local_manager/hive_manager.dart';
+import 'locator.dart';
+import 'widget/theme_change_view.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   setUpLocator();
-  await getIt<IHive>().init();
-  runApp(const MyApp());
+  await getIt<IHiveManager>().init();
+  runApp(
+    BlocProvider<ThemeBloc>(
+      // !!!!!lazy: false, // Default: true
+      create: (context) => ThemeBloc(getIt<IHiveManager>())..init(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -13,59 +26,25 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+    return BlocBuilder<ThemeBloc, ThemeBlocState>(
+      builder: (context, state) {
+        return MaterialApp(
+          title: 'Flutter Demo',
+          theme: state.theme?.getTheme(getIt<Themes>()) ?? ThemeData.dark(),
+          home: const ThemeChangeView(),
+        );
+      },
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
 
-  final String title;
+// Önemli Kavramlar
+//    * 1. BlocProvider
+//    * 2. BlocBuilder
+//    * 3. BlocSelector
+//    * 4. BlocListener
+//    * 5. BlocConsumer
+//    * 6. context.read<T>
+//    * 7. context.watch<T>
 
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-}
